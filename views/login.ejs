@@ -1,11 +1,4 @@
-<!DOCTYPE html>
-<html>
-
-<head>
-    <title>Log In</title>
-</head>
-
-<body>
+<%- include('templates/header', { title: 'Log In', user }) %>
     <h1>Log In</h1>
 
     <form action="/login" method="POST">
@@ -25,7 +18,4 @@
 
     <% if (message) { %>  <p><%= message %></p>
     <% } %>
-
-</body>
-
-</html>
+<%- include('templates/footer') %>

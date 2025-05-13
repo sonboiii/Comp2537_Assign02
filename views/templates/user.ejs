@@ -1,0 +1,9 @@
+<li class="list-group-item d-flex justify-content-between align-items-center">
+    <span><%= user.name %> - <%= user.email %> (<%= user.user_type %>)</span>
+    <form action="/<%= user.user_type === 'admin' ? 'demote' : 'promote' %>" method="POST" class="m-0">
+      <input type="hidden" name="email" value="<%= user.email %>">
+      <button type="submit" class="btn btn-sm <%= user.user_type === 'admin' ? 'btn-warning' : 'btn-success' %>">
+        <%= user.user_type === 'admin' ? 'Demote' : 'Promote' %>
+      </button>
+    </form>
+  </li>

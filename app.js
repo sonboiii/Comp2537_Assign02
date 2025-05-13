@@ -1,4 +1,3 @@
-
 const express = require('express');
 const session = require('express-session');
 const connectMongo = require('connect-mongo');
@@ -11,21 +10,16 @@ const path = require('path');
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 1002;
-
+const port = process.env.PORT || 1001;
 
 const mongoUrl = `mongodb+srv://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}/${process.env.MONGODB_DATABASE}`;
-
 const client = new MongoClient(mongoUrl);
-
 
 const MongoStore = connectMongo.create({
   client: client,
   dbName: process.env.MONGODB_DATABASE,
   collectionName: 'sessions',
-  crypto: {
-    secret: process.env.MONGODB_SESSION_SECRET
-  }
+  crypto: { secret: process.env.MONGODB_SESSION_SECRET }
 });
 
 app.use(
@@ -34,76 +28,22 @@ app.use(
     resave: false,
     saveUninitialized: false,
     store: MongoStore,
-    cookie: {
-      maxAge: 60 * 60 * 1000,
-    },
+    cookie: { maxAge: 60 * 60 * 1000 },
   })
 );
-async function nosqlInjection(req, res) {
-  var username = req.query.user;
-
-  if (!username) {
-    res.send(`<h3>no user provided - try /nosql-injection?user=name</h3> <h3>or /nosql-injection?user[$ne]=name</h3>`);
-    return;
-  }
-  console.log("user: " + username);
-
-  const schema = Joi.string().max(20).required();
-  const validationResult = schema.validate(username);
-
-  if (validationResult.error != null) {
-    console.log(validationResult.error);
-    res.send("<h1 style='color:darkred;'>A NoSQL injection attack was detected!!</h1>");
-    return;
-  }
-
-  const result = await users.find({ name: username }).project({ name: 1, email: 1, _id: 0 }).toArray();
-
-  console.log(result);
-
-  res.send(`<h1>Hello ${result[0].name}</h1>`);
-
-
-}
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
-
 app.set('view engine', 'ejs');
 
-async function run() {
-  try {
-    await client.connect();
-    console.log('Connected successfully to MongoDB');
-
-    // --- ROUTES ---
-    app.get('/', home);
-    app.post('/', homePost);
-    app.get('/signup', signup);
-    app.post('/signup', signupPost);
-    app.get('/login', login);
-    app.post('/login', loginPost);
-    app.get('/logout', logout);
-    app.get('/members', members);
-    app.use(error404);
-
-    app.listen(port, () => {
-      console.log(`Server is running at http://localhost:${port}`);
-    });
-  } catch (err) {
-    console.error('Error connecting to MongoDB', err);
-  }
-}
-
-run().catch(console.dir);
-
-
 const isLoggedIn = (req, res, next) => {
-  if (req.session.user) {
-    next();
-  } else {
-    res.redirect('/');
-  }
+  if (req.session.user) next();
+  else res.redirect('/login');
+};
+
+const isAdmin = (req, res, next) => {
+  if (req.session.user && req.session.user.user_type === 'admin') next();
+  else res.status(403).render('403', { user: req.session.user });
 };
 
 async function home(req, res) {
@@ -124,59 +64,40 @@ async function home(req, res) {
   }
 }
 
-async function homePost(req, res) {
-  const data = req.body;
-  console.log("Data received in POST request to /:", data);
-
-  res.send("Received your POST request!");
-}
 async function signup(req, res) {
-  res.render('signup');
+  res.render('signup', { user: null });
 }
 
 async function signupPost(req, res) {
   const schema = Joi.object({
     name: Joi.string().max(255).required(),
-    email: Joi.string().email().max(255).required(),
-    password: Joi.string().min(6).max(255).required(),
+    email: Joi.string().email().required(),
+    password: Joi.string().min(6).required(),
   });
-
   const { error, value } = schema.validate(req.body);
+  if (error) return res.status(400).send(error.details[0].message);
 
-  if (error) {
-    return res.status(400).send(error.details[0].message);
-  }
+  const db = client.db(process.env.MONGODB_DATABASE);
+  const users = db.collection('users');
 
-  try {
-    const db = client.db(process.env.MONGODB_DATABASE);
-    const users = db.collection('users');
+  const existingUser = await users.findOne({ email: value.email });
+  if (existingUser) return res.status(400).send('Email already exists');
 
+  const hashedPassword = await bcrypt.hash(value.password, 10);
+  const newUser = {
+    name: value.name,
+    email: value.email,
+    password: hashedPassword,
+    user_type: 'user'
+  };
 
-    const existingUser = await users.findOne({ email: value.email });
-    if (existingUser) {
-      return res.status(400).send('Email already exists');
-    }
-
-    const hashedPassword = await bcrypt.hash(value.password, 10);
-
-    const newUser = {
-      name: value.name,
-      email: value.email,
-      password: hashedPassword,
-    };
-    await users.insertOne(newUser);
-
-    req.session.user = { name: value.name, email: value.email };
-
-    res.redirect('/members');
-  } catch (err) {
-    console.error('Error during signup', err);
-    res.status(500).send('Error signing up');
-  }
+  await users.insertOne(newUser);
+  req.session.user = { name: newUser.name, email: newUser.email, user_type: newUser.user_type };
+  res.redirect('/members');
 }
 
 async function login(req, res) {
-  res.render('login', { message: null });
+  res.render('login', { message: null, user: null });
 }
 
 async function loginPost(req, res) {
@@ -184,56 +105,74 @@ async function loginPost(req, res) {
     email: Joi.string().email().required(),
     password: Joi.string().required(),
   });
-
   const { error, value } = schema.validate(req.body);
+  if (error) return res.status(400).send(error.details[0].message);
 
-  if (error) {
-    return res.status(400).send(error.details[0].message);
+  const db = client.db(process.env.MONGODB_DATABASE);
+  const users = db.collection('users');
+  const user = await users.findOne({ email: value.email });
+
+  if (!user || !(await bcrypt.compare(value.password, user.password))) {
+    res.render('login', { message: 'Invalid email/password combination', user: null });
   }
 
-  try {
-    const db = client.db(process.env.MONGODB_DATABASE);
-    const users = db.collection('users');
-
-    const user = await users.findOne({ email: value.email });
-
-    if (!user) {
-      return res.render('login', { message: 'Invalid email/password combination' });
-    }
-
-    const passwordMatch = await bcrypt.compare(value.password, user.password);
-
-    if (passwordMatch) {
-      req.session.user = { name: user.name, email: user.email };
-      res.redirect('/');
-    } else {
-      return res.render('login', { message: 'Invalid email/password combination' });
-    }
-  } catch (err) {
-    console.error('Error during login', err);
-    res.status(500).render('login', { message: 'Error logging in' });
-  }
+  req.session.user = { name: user.name, email: user.email, user_type: user.user_type };
+  res.redirect('/');
 }
 
 async function logout(req, res) {
-  req.session.destroy((err) => {
-    if (err) {
-      console.error('Error destroying session', err);
-    }
-    res.redirect('/');
-  });
+  req.session.destroy(() => res.redirect('/'));
 }
 
 async function members(req, res) {
-  if (req.session.user) {
-    const images = ['cat1.jpg', 'cat2.jpg', 'cat3.jpg'];
-    const randomImage = images[Math.floor(Math.random() * images.length)];
-    res.render('members', { user: req.session.user, randomImage: randomImage });
-  } else {
-    res.redirect('/');
+  if (!req.session.user) return res.redirect('/');
+  const images = ['cat1.jpg', 'cat2.jpg', 'cat3.jpg'];
+  res.render('members', { user: req.session.user, images });
+}
+
+async function admin(req, res) {
+  const db = client.db(process.env.MONGODB_DATABASE);
+  const users = await db.collection('users').find().toArray();
+  res.render('admin', { user: req.session.user, users });
+}
+
+async function promote(req, res) {
+  const db = client.db(process.env.MONGODB_DATABASE);
+  await db.collection('users').updateOne({ email: req.body.email }, { $set: { user_type: 'admin' } });
+  res.redirect('/admin');
+}
+
+async function demote(req, res) {
+  const db = client.db(process.env.MONGODB_DATABASE);
+  await db.collection('users').updateOne({ email: req.body.email }, { $set: { user_type: 'user' } });
+  res.redirect('/admin');
+}
+
+function error404(req, res) {
+  res.status(404).render('404', { user: req.session.user });
+}
+
+async function run() {
+  try {
+    await client.connect();
+    console.log('Connected to MongoDB');
+
+    app.get('/', home);
+    app.get('/signup', signup);
+    app.post('/signup', signupPost);
+    app.get('/login', login);
+    app.post('/login', loginPost);
+    app.get('/logout', logout);
+    app.get('/members', isLoggedIn, members);
+    app.get('/admin', isLoggedIn, isAdmin, admin);
+    app.post('/promote', isLoggedIn, isAdmin, promote);
+    app.post('/demote', isLoggedIn, isAdmin, demote);
+    app.use(error404);
+
+    app.listen(port, () => console.log(`Server is running at http://localhost:${port}`));
+  } catch (err) {
+    console.error('MongoDB connection error:', err);
   }
 }
 
-async function error404(req, res) {
-  res.status(404).send('Page not found - 404');
-}
+run().catch(console.dir);

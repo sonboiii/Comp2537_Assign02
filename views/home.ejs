@@ -1,28 +1,12 @@
-<!DOCTYPE html>
-<html>
-
-<head>
-    <title>Home</title>
-</head>
-
-<body>
-
-  <h1>Welcome to Our Site</h1>
+<%- include('templates/header', { title: 'Home', user }) %>
 
   <% if (user) { %>
-    <p><%= message %></p>
+    <h1><%= message %></h1>
     <p>
       <a href="<%= membersLink %>">Go to Members Area</a> |
       <a href="<%= logoutLink %>">Log Out</a>
     </p>
   <% } else { %>
     <p><%= message %></p>
-    <p>
-      <a href="<%= signupLink %>">Sign Up</a> |
-      <a href="<%= loginLink %>">Log In</a>
-    </p>
   <% } %>
-
-</body>
-
-</html>
+<%- include('templates/footer') %>

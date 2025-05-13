@@ -1,22 +1,17 @@
-<!DOCTYPE html>
-<html>
+<%- include('templates/header', { title: 'Cats', user }) %>
 
-<head>
-    <title>Members Area</title>
-</head>
+<% if (user) { %>
+  <h1>Hello, <%= user.name %>!</h1>
+  <div class="row">
+    <% ['cat1.jpg', 'cat2.jpg', 'cat3.jpg'].forEach(function(img) { %>
+      <div class="col-md-4 mb-3 d-flex justify-content-center">
+        <img src="/images/<%= img %>" class="img-thumbnail" style="width: 100%; max-width: 300px; height: 300px; object-fit: cover;" alt="Cat image">
+      </div>
+    <% }) %>
+  </div>
+<% } else { %>
+  <p>You are not logged in.</p>
+  <a href="/" class="btn btn-secondary">Go to Home</a>
+<% } %>
 
-<body>
-
-    <% if (user) { %>
-        <h1>Hello, <%= user.name %>!</h1>
-        <a href="/logout">Logout</a>
-        <br>
-        <img src="/images/<%= randomImage %>" alt="Random Cat Meme">
-    <% } else { %>
-        <p>You are not logged in.</p>
-        <a href="/">Go to Home</a>
-    <% } %>
-
-</body>
-
-</html>
+<%- include('templates/footer') %>

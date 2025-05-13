@@ -1,31 +1,22 @@
-<!DOCTYPE html>
-<html>
+<%- include('templates/header', { title: 'Sign Up', user }) %>
 
-<head>
-    <title>Sign Up</title>
-</head>
+<h1>Create User</h1>
+<form action="/signup" method="POST" class="mb-3">
+  <div class="mb-3">
+    <label for="name" class="form-label">Name:</label>
+    <input type="text" id="name" name="name" class="form-control" required>
+  </div>
+  <div class="mb-3">
+    <label for="email" class="form-label">Email:</label>
+    <input type="email" id="email" name="email" class="form-control" required>
+  </div>
+  <div class="mb-3">
+    <label for="password" class="form-label">Password:</label>
+    <input type="password" id="password" name="password" class="form-control" required>
+  </div>
+  <button type="submit" class="btn btn-success">Submit</button>
+</form>
 
-<body>
-    <h1>Create User</h1>
+<a href="/" class="btn btn-secondary">Go to Home</a>
 
-    <form action="/signup" method="POST">
-        <div>
-            <label for="name">Name:</label>
-            <input type="text" id="name" name="name" required>
-        </div>
-        <div>
-            <label for="email">Email:</label>
-            <input type="email" id="email" name="email" required>
-        </div>
-        <div>
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required>
-        </div>
-        <button type="submit">Submit</button>
-    </form>
-
-    <br>
-    <a href="/">Go to Home</a>
-</body>
-
-</html>
+<%- include('templates/footer') %>
