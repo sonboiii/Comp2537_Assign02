@@ -25,16 +25,15 @@
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ms-auto">
             <% if (user) { %>
-                <li class="nav-item"><a class="nav-link btn btn-outline-success me-2" href="/members">Cats</a></li>
+                <li class="nav-item"><a class="nav-link fw-bold text-white btn btn-outline-success me-2" href="/members">Cats</a></li>
                 <% if (user.user_type === 'admin') { %>
-                  <li class="nav-item"><a class="nav-link btn btn-outline-warning me-2" href="/admin">Admin</a></li>
+                  <li class="nav-item"><a class="nav-link fw-bold text-white btn btn-outline-warning me-2" href="/admin">Admin</a></li>
                 <% } %>
-                <li class="nav-item"><a class="nav-link btn btn-outline-danger" href="/logout">Logout</a></li>
+                <li class="nav-item"><a class="nav-link fw-bold text-white btn btn-outline-danger" href="/logout">Logout</a></li>
               <% } else { %>
-                <li class="nav-item"><a class="nav-link btn btn-outline-success me-2" href="/signup">Sign Up</a></li>
-                <li class="nav-item"><a class="nav-link btn btn-outline-info" href="/login">Login</a></li>
+                <li class="nav-item"><a class="nav-link fw-bold text-white btn btn-outline-success me-2" href="/signup">Sign Up</a></li>
+                <li class="nav-item"><a class="nav-link fw-bold text-white btn btn-outline-info" href="/login">Login</a></li>
               <% } %>
-    
         </ul>
       </div>
     </div>
